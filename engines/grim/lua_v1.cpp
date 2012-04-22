@@ -660,6 +660,16 @@ void Lua_V1::LightMgrSetChange() {
 	// that seems only used when some control panel is opened
 }
 
+void Lua_V1::AttachToResources() {
+	Debug::debug(Debug::Engine, "AttachToResource called, loading resources...");
+	g_resourceloader->AttachToResources();
+}
+
+void Lua_V1::DetachFromResources() {
+	Debug::debug(Debug::Engine, "DetachFromResource called, unloading resources...");
+	g_resourceloader->DetachFromResources();
+}
+
 void Lua_V1::LightMgrStartup() {
 	// we will not implement this opcode
 }
@@ -683,8 +693,6 @@ static void stubWarning(const char *funcName) {
 STUB_FUNC(Lua_V1::SetActorInvClipNode)
 STUB_FUNC(Lua_V1::NukeResources)
 STUB_FUNC(Lua_V1::ResetTextures)
-STUB_FUNC(Lua_V1::AttachToResources)
-STUB_FUNC(Lua_V1::DetachFromResources)
 STUB_FUNC(Lua_V1::SetActorClipPlane)
 STUB_FUNC(Lua_V1::SetActorClipActive)
 STUB_FUNC(Lua_V1::FlushControls)

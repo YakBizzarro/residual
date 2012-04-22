@@ -68,9 +68,58 @@ public:
 ResourceLoader::ResourceLoader() {
 	_cacheDirty = false;
 	_cacheMemorySize = 0;
+	_resourcesLoaded = false;
+	LoadUndetachableResources();
+	AttachToResources();
+	SearchMan.add("Data", &_files, 1, false);
+}
+
+void ResourceLoader::LoadUndetachableResources() {
+	if (g_grim->getGameType() == GType_GRIM && !(g_grim->getGameFlags() & ADGF_DEMO)) {
+		//Load the update from the executable
+		Common::File *updStream = new Common::File();
+		if (updStream && updStream->open("gfupd101.exe")) {
+			Common::Archive *update = loadUpdateArchive(updStream);
+			if (update)
+				SearchMan.add("update", update, 2);
+		} else
+			delete updStream;
+
+		//Load patches
+		const char *patchesFilename = "residualvm-grim-patch.lab";
+		if (!SearchMan.hasFile(patchesFilename))
+			error("%s not found", patchesFilename);
+
+		Lab *update = new Lab();
+		if (!update->open(patchesFilename)) {
+			delete update;
+			error("Unable to load %s", patchesFilename);
+		}
+		SearchMan.add("patches", update, 2);
+	} else if (g_grim->getGameType() == GType_MONKEY4 &&
+				!(g_grim->getGameFlags() == ADGF_DEMO) &&
+				g_grim->getGamePlatform() == Common::kPlatformWindows) {
+		//Load the update from the executable
+		Common::ArchiveMemberList updFiles;
+		SearchMan.listMatchingMembers(updFiles, "MonkeyUpdate.exe");
+		SearchMan.listMatchingMembers(updFiles, "MonkeyUpdate_???.exe");
+		for (Common::ArchiveMemberList::const_iterator x = updFiles.begin(); x != updFiles.end(); ++x) {
+			Common::SeekableReadStream *updStream;
+			updStream = (*x)->createReadStream();
+
+			Common::Archive *update = loadUpdateArchive(updStream);
+			if (update)
+				SearchMan.add("update", update, 2);
+		}
+	}
+}
+
+void ResourceLoader::AttachToResources() {
+	if (_resourcesLoaded)
+		return;
 
 	Lab *l;
-	Common::ArchiveMemberList files, updFiles;
+	Common::ArchiveMemberList files;
 
 	if (g_grim->getGameType() == GType_GRIM) {
 		if (g_grim->getGameFlags() & ADGF_DEMO) {
@@ -79,19 +128,6 @@ ResourceLoader::ResourceLoader() {
 			SearchMan.listMatchingMembers(files, "sound001.lab");
 			SearchMan.listMatchingMembers(files, "voice001.lab");
 		} else {
-			//Load the update from the executable
-			Common::File *updStream = new Common::File();
-			if (updStream && updStream->open("gfupd101.exe")) {
-				Common::Archive *update = loadUpdateArchive(updStream);
-				if (update)
-					SearchMan.add("update", update, 1);
-			} else
-				delete updStream;
-
-			if (!SearchMan.hasFile("residualvm-grim-patch.lab"))
-				error("residualvm-grim-patch.lab not found");
-
-			SearchMan.listMatchingMembers(files, "residualvm-grim-patch.lab");
 			SearchMan.listMatchingMembers(files, "datausr.lab");
 			SearchMan.listMatchingMembers(files, "data005.lab");
 			SearchMan.listMatchingMembers(files, "data004.lab");
@@ -127,20 +163,6 @@ ResourceLoader::ResourceLoader() {
 			SearchMan.listMatchingMembers(files, "tile.lab");
 			SearchMan.listMatchingMembers(files, "voice.lab");
 		} else {
-			if (g_grim->getGamePlatform() == Common::kPlatformWindows) {
-				//Load the update from the executable
-				SearchMan.listMatchingMembers(updFiles, "MonkeyUpdate.exe");
-				SearchMan.listMatchingMembers(updFiles, "MonkeyUpdate_???.exe");
-				for (Common::ArchiveMemberList::const_iterator x = updFiles.begin(); x != updFiles.end(); ++x) {
-					Common::SeekableReadStream *updStream;
-					updStream = (*x)->createReadStream();
-
-					Common::Archive *update = loadUpdateArchive(updStream);
-					if (update)
-						SearchMan.add("update", update, 1);
-				}
-			}
-
 			SearchMan.listMatchingMembers(files, "patch.m4b");
 			SearchMan.listMatchingMembers(files, "i9n.m4b");
 			SearchMan.listMatchingMembers(files, "art???.m4b");
@@ -162,17 +184,24 @@ ResourceLoader::ResourceLoader() {
 		filename.toLowercase();
 
 		//Avoid duplicates
-		if (SearchMan.hasArchive(filename))
+		if (_files.hasArchive(filename))
 			continue;
 
 		l = new Lab();
-		if (l->open(filename))
-			SearchMan.add(filename, l, priority--, true);
-		else
+		if (l->open(filename)) {
+			Debug::debug(Debug::Engine, "Loading %s", filename.c_str());
+			_files.add(filename, l, priority--, true);
+		} else
 			delete l;
 	}
 
 	files.clear();
+	_resourcesLoaded = true;
+}
+
+void ResourceLoader::DetachFromResources() {
+	_files.clear();
+	_resourcesLoaded = false;
 }
 
 template<typename T>
@@ -194,6 +223,8 @@ ResourceLoader::~ResourceLoader() {
 	clearList(_colormaps);
 	clearList(_keyframeAnims);
 	clearList(_lipsyncs);
+
+	_files.clear();
 }
 
 static int sortCallback(const void *entry1, const void *entry2) {

@@ -56,6 +56,9 @@ public:
 	ResourceLoader();
 	~ResourceLoader();
 
+	void AttachToResources();
+	void DetachFromResources();
+
 	CMap *loadColormap(const Common::String &fname);
 	Costume *loadCostume(const Common::String &fname, Costume *prevCost);
 	Font *loadFont(const Common::String &fname);
@@ -89,10 +92,14 @@ private:
 	ResourceLoader::ResourceCache *getEntryFromCache(const Common::String &filename) const;
 	void putIntoCache(const Common::String &fname, byte *res, uint32 len) const;
 	void uncache(const char *fname) const;
+	void LoadUndetachableResources();
 
 	mutable Common::Array<ResourceCache> _cache;
 	mutable bool _cacheDirty;
 	mutable int32 _cacheMemorySize;
+
+	bool _resourcesLoaded;
+	Common::SearchSet _files;
 
 	Common::List<EMIModel *> _emiModels;
 	Common::List<Model *> _models;
