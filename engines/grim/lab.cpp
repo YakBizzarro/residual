@@ -28,6 +28,16 @@
 
 namespace Grim {
 
+TrackedFile::TrackedFile(trackedFilesList* trackingList) {
+	_list = trackingList;
+	_list->push_back(this);
+}
+
+TrackedFile::~TrackedFile() {
+	if (_list)
+		_list->remove(this);
+}
+
 LabEntry::LabEntry()
 	: _name(Common::String()), _offset(0), _len(0), _parent(NULL) {
 }
@@ -61,6 +71,15 @@ bool Lab::open(const Common::String &filename) {
 	delete file;
 
 	return result;
+}
+
+Lab::~Lab() {
+	//Close all tracked streams
+	//Note that it doesn't delete the object, it only close the associated stream
+	for (trackedFilesList::iterator i = _openFiles.begin(); i != _openFiles.end(); ++i) {
+		(*i)->close();
+		(*i)->untrack();
+	}
 }
 
 void Lab::parseGrimFileTable(Common::File *file) {
@@ -170,7 +189,7 @@ Common::SeekableReadStream *Lab::createReadStreamForMember(const Common::String 
 	fname.toLowercase();
 	LabEntryPtr i = _entries[fname];
 
-	Common::File *file = new Common::File();
+	TrackedFile *file = new TrackedFile(&_openFiles);
 	file->open(_labFileName);
 	return new Common::SeekableSubReadStream(file, i->_offset, i->_offset + i->_len, DisposeAfterUse::YES);
 }

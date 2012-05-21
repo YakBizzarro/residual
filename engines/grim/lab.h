@@ -24,14 +24,26 @@
 #define GRIM_LAB_H
 
 #include "common/archive.h"
-
-namespace Common {
-	class File;
-}
+#include "common/file.h"
 
 namespace Grim {
 
 class Lab;
+class TrackedFile;
+
+typedef Common::List<TrackedFile*> trackedFilesList;
+
+//A child of Common::File that add itself to a list of open files
+//it removes itself from this list at destruction
+class TrackedFile : public Common::File {
+public:
+	TrackedFile(trackedFilesList* trackingList);
+	virtual ~TrackedFile();
+
+	void untrack() { _list = NULL; }
+private:
+	trackedFilesList* _list;
+};
 
 class LabEntry : public Common::ArchiveMember {
 	Lab *_parent;
@@ -48,6 +60,7 @@ public:
 class Lab : public Common::Archive {
 public:
 	bool open(const Common::String &filename);
+	~Lab();
 
 	// Common::Archive implementation
 	virtual bool hasFile(const Common::String &name) const;
@@ -63,6 +76,8 @@ private:
 	typedef Common::SharedPtr<LabEntry> LabEntryPtr;
 	typedef Common::HashMap<Common::String, LabEntryPtr, Common::IgnoreCase_Hash, Common::IgnoreCase_EqualTo> LabMap;
 	LabMap _entries;
+
+	mutable trackedFilesList _openFiles;
 };
 
 } // end of namespace Grim
