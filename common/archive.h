@@ -117,6 +117,8 @@ public:
 	 * @return the newly created input stream
 	 */
 	virtual SeekableReadStream *createReadStreamForMember(const String &name) const = 0;
+
+	virtual void update() {};
 };
 
 
@@ -233,6 +235,7 @@ public:
 	virtual bool hasFile(const String &name) const;
 	virtual int listMatchingMembers(ArchiveMemberList &list, const String &pattern) const;
 	virtual int listMembers(ArchiveMemberList &list) const;
+	virtual void update();
 
 	virtual const ArchiveMemberPtr getMember(const String &name) const;
 

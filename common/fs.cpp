@@ -34,6 +34,10 @@ FSNode::FSNode(AbstractFSNode *realNode)
 }
 
 FSNode::FSNode(const String &p) {
+	createRealNodeFromPath(p);
+}
+
+void FSNode::createRealNodeFromPath(const String &p) {
 	assert(g_system);
 	FilesystemFactory *factory = g_system->getFilesystemFactory();
 	AbstractFSNode *tmp = 0;
@@ -122,6 +126,12 @@ bool FSNode::isReadable() const {
 
 bool FSNode::isWritable() const {
 	return _realNode && _realNode->isWritable();
+}
+
+void FSNode::refresh() {
+	String p = getPath();
+	_realNode.reset();
+	createRealNodeFromPath(p);
 }
 
 SeekableReadStream *FSNode::createReadStream() const {
@@ -234,6 +244,16 @@ SeekableReadStream *FSDirectory::createReadStreamForMember(const String &name) c
 		warning("FSDirectory::createReadStreamForMember: Can't create stream for file '%s'", name.c_str());
 
 	return stream;
+}
+
+void FSDirectory::update() {
+	//Refresh the FSNode
+	_node.refresh();
+
+	//Wipe the file list to force a reload
+	_fileCache.clear();
+	_subDirCache.clear();
+	_cached = false;
 }
 
 FSDirectory *FSDirectory::getSubDirectory(const String &name, int depth, bool flat) {

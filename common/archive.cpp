@@ -266,6 +266,11 @@ SeekableReadStream *SearchSet::createReadStreamForMember(const String &name) con
 	return 0;
 }
 
+void SearchSet::update() {
+	ArchiveNodeList::iterator it = _list.begin();
+		for ( ; it != _list.end(); ++it)
+			it->_arc->update();
+}
 
 SearchManager::SearchManager() {
 	clear();	// Force a reset

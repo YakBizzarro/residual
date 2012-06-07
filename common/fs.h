@@ -59,6 +59,8 @@ private:
 	SharedPtr<AbstractFSNode>	_realNode;
 	FSNode(AbstractFSNode *realNode);
 
+	void createRealNodeFromPath(const String &path);
+
 public:
 	/**
 	 * Flag to tell listDir() which kind of files to list.
@@ -206,6 +208,11 @@ public:
 	bool isWritable() const;
 
 	/**
+	 * Reload the node and update the path.
+	 */
+	void refresh();
+
+	/**
 	 * Creates a SeekableReadStream instance corresponding to the file
 	 * referred by this node. This assumes that the node actually refers
 	 * to a readable file. If this is not the case, 0 is returned.
@@ -341,6 +348,8 @@ public:
 	 * for success.
 	 */
 	virtual SeekableReadStream *createReadStreamForMember(const String &name) const;
+
+	virtual void update();
 };
 
 
