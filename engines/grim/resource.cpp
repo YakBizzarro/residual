@@ -118,6 +118,9 @@ void ResourceLoader::AttachToResources() {
 	if (_resourcesLoaded)
 		return;
 
+	//Make sure to have an updateed list of files
+	SearchMan.update();
+
 	Lab *l;
 	Common::ArchiveMemberList files;
 
